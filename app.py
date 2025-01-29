@@ -1,71 +1,87 @@
 import streamlit as st
 from assistant import get_chat_response
-from dotenv import load_dotenv
-import os
 
-# Ladataan ympäristömuuttujat
-load_dotenv()
-
-# Asetetaan sivun konfiguraatio
+# Sivun perusasetukset
 st.set_page_config(
     page_title="SNAPIN AiNooo",
     page_icon="🤖",
-    layout="centered"
+    layout="centered",
+    initial_sidebar_state="expanded"
 )
 
-# Haetaan API-avain ja tarkistetaan se
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
-    st.error("🔑 OpenAI API -avain puuttuu! Lisää se .env-tiedostoon tai Streamlitin asetuksiin.")
+# Tyylitiedot
+st.markdown("""
+<style>
+    [data-testid=stSidebar] {
+        background: #f0f2f6 !important;
+    }
+    .stChatInput input {
+        border: 2px solid #4a90e2 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# API-avaimen haku
+try:
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+except (KeyError, AttributeError) as e:
+    st.error("🔑 API-avain puuttuu! Lisää se Streamlitin Secrets-osiossa.")
     st.stop()
 
 # Alustetaan viestihistoria
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "system", "content": "Olet suomenkielinen tekoälyavustaja."}
+        {"role": "assistant", "content": "Miten voin auttaa sinua tänään?"}
     ]
 
-# Näyttää otsikon
+# Sivupalkin sisältö
+with st.sidebar:
+    st.header("⚙️ Asetukset")
+    model_name = st.selectbox(
+        "Valitse malli:",
+        ["gpt-3.5-turbo", "gpt-4"],
+        index=0,
+        key="model_selector"
+    )
+    st.divider()
+    st.markdown("**Tietoturva:**")
+    st.markdown("- Kaikki viestit salataan")
+    st.markdown("- Tietoja ei tallenneta")
+
+# Pääsisältö
 st.title("💬 SNAPIN AiNooo")
-st.caption("Suomenkielinen tekoälyavustaja")
+st.caption("Suomenkielinen tekoälyavustaja GPT-teknologialla")
 
-# Mallin valinta
-model_choice = st.sidebar.selectbox(
-    "Valitse malli:",
-    ["gpt-3.5-turbo", "gpt-4"],
-    key="model_selector"
-)
-
-# Näyttää viestihistorian
+# Näytä viestihistoria
 for message in st.session_state.messages:
-    if message["role"] != "system":  # Ei näytetä järjestelmäviestejä
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    avatar = "🤖" if message["role"] == "assistant" else "👤"
+    with st.chat_message(message["role"], avatar=avatar):
+        st.markdown(message["content"])
 
-# Käsittelee käyttäjän syötteen
-if prompt := st.chat_input("Kirjoita viesti..."):
-    # Lisätään käyttäjän viesti historiaan
+# Käsittele uusi viesti
+if prompt := st.chat_input("Kirjoita viestisi tähän..."):
+    # Lisää käyttäjän viesti historiaan
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    # Näytetään käyttäjän viesti
-    with st.chat_message("user"):
+    # Näytä käyttäjän viesti
+    with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
 
-    # Generoidaan vastaus
+    # Generoi vastaus
     try:
-        with st.spinner("Ajatellaan..."):
-            full_response = get_chat_response(
-                model=model_choice,
+        with st.spinner("Generoidaan vastausta..."):
+            response = get_chat_response(
+                model=model_name,
                 messages=st.session_state.messages,
-                api_key=openai_api_key
+                api_key=OPENAI_API_KEY
             )
         
-        # Lisätään vastaus historiaan
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+        # Lisää vastaus historiaan
+        st.session_state.messages.append({"role": "assistant", "content": response})
         
-        # Näytetään vastaus
-        with st.chat_message("assistant"):
-            st.markdown(full_response)
+        # Näytä vastaus
+        with st.chat_message("assistant", avatar="🤖"):
+            st.markdown(response)
 
     except Exception as e:
         st.error(f"Virhe: {str(e)}")
