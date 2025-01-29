@@ -1,4 +1,7 @@
 import streamlit as st
+
+st.markdown("🚀 Sovellus latautuu onnistuneesti...")
+
 from assistant import get_chat_response
 from dotenv import load_dotenv
 import os
