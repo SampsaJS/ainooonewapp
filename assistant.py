@@ -1,10 +1,10 @@
 import openai
-from typing import Optional
+from typing import Union
 
-def get_chat_response(model: str, messages: list, api_key: str) -> Optional[str]:
-    openai.api_key = api_key
-    
+def get_chat_response(model: str, messages: list, api_key: str) -> Union[str, None]:
     try:
+        openai.api_key = api_key
+        
         response = openai.ChatCompletion.create(
             model=model,
             messages=messages,
@@ -14,11 +14,14 @@ def get_chat_response(model: str, messages: list, api_key: str) -> Optional[str]
             frequency_penalty=0.0,
             presence_penalty=0.0
         )
+        
         return response.choices[0].message['content'].strip()
     
     except openai.error.AuthenticationError:
         return "Virhe: Väärä API-avain"
     except openai.error.RateLimitError:
-        return "Virhe: API-kutsuraja ylitetty"
+        return "Virhe: Kutsuraja ylitetty - yritä hetken kuluttua"
+    except openai.error.APIError as e:
+        return f"API-virhe: {str(e)}"
     except Exception as e:
-        return f"Virhe: {str(e)}"
+        return f"Odottamaton virhe: {str(e)}"
