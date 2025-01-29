@@ -1,13 +1,13 @@
 import openai
 from typing import Optional
 
-def get_chat_response(model: str, user_input: str, messages: list, api_key: str) -> Optional[str]:
+def get_chat_response(model: str, messages: list, api_key: str) -> Optional[str]:
     openai.api_key = api_key
     
     try:
         response = openai.ChatCompletion.create(
             model=model,
-            messages=messages + [{"role": "user", "content": user_input}],
+            messages=messages,
             temperature=0.7,
             max_tokens=1500,
             top_p=1.0,
@@ -19,6 +19,6 @@ def get_chat_response(model: str, user_input: str, messages: list, api_key: str)
     except openai.error.AuthenticationError:
         return "Virhe: Väärä API-avain"
     except openai.error.RateLimitError:
-        return "Virhe: API-kutsu rajoitus ylitetty"
+        return "Virhe: API-kutsuraja ylitetty"
     except Exception as e:
         return f"Virhe: {str(e)}"
